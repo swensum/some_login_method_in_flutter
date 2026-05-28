@@ -17,9 +17,10 @@ class Loginpage2 extends StatefulWidget {
 class _Loginpage2State extends State<Loginpage2> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final AuthService _authService = AuthService(); // Reuse instance
+  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isGoogleLoading = false;  // Separate loading for Google
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
@@ -34,6 +35,45 @@ class _Loginpage2State extends State<Loginpage2> {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isGoogleLoading) return;
+    
+    setState(() => _isGoogleLoading = true);
+    
+    try {
+      User? user = await _authService.signInWithGoogle(context);
+      
+      if (user != null && mounted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Google Sign In Successful!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Google Sign In failed: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -96,7 +136,6 @@ class _Loginpage2State extends State<Loginpage2> {
       if (user != null && mounted) {
         await _saveCredentials();
         if (!user.emailVerified) {
-          // Send new verification email
           await _authService.sendEmailVerification();
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -109,7 +148,6 @@ class _Loginpage2State extends State<Loginpage2> {
             ),
           );
 
-          // Go to verification screen
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -120,7 +158,6 @@ class _Loginpage2State extends State<Loginpage2> {
           return;
         }
 
-        // Email verified - login success
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -183,7 +220,7 @@ class _Loginpage2State extends State<Loginpage2> {
 
                 TextFormField(
                   controller: emailController,
-                  enabled: !_isLoading,
+                  enabled: !_isLoading && !_isGoogleLoading,
                   validator: _validateEmail,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
@@ -207,7 +244,7 @@ class _Loginpage2State extends State<Loginpage2> {
 
                 TextFormField(
                   controller: passwordController,
-                  enabled: !_isLoading,
+                  enabled: !_isLoading && !_isGoogleLoading,
                   validator: _validatePassword,
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
@@ -249,7 +286,7 @@ class _Loginpage2State extends State<Loginpage2> {
                       children: [
                         Checkbox(
                           value: _rememberMe,
-                          onChanged: _isLoading
+                          onChanged: (_isLoading || _isGoogleLoading)
                               ? null
                               : (bool? value) {
                                   setState(() {
@@ -269,7 +306,7 @@ class _Loginpage2State extends State<Loginpage2> {
                       ],
                     ),
                     TextButton(
-                      onPressed: _isLoading
+                      onPressed: (_isLoading || _isGoogleLoading)
                           ? null
                           : () {
                               Navigator.push(
@@ -293,7 +330,7 @@ class _Loginpage2State extends State<Loginpage2> {
                   const CircularProgressIndicator()
                 else
                   ElevatedButton(
-                    onPressed: loginUser,
+                    onPressed: (_isGoogleLoading) ? null : loginUser,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       minimumSize: const Size(double.infinity, 50),
@@ -309,7 +346,7 @@ class _Loginpage2State extends State<Loginpage2> {
                 const SizedBox(height: 16),
 
                 TextButton(
-                  onPressed: _isLoading
+                  onPressed: (_isLoading || _isGoogleLoading)
                       ? null
                       : () {
                           Navigator.push(
@@ -350,34 +387,50 @@ class _Loginpage2State extends State<Loginpage2> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    InkWell(
-                      // onTap: _signInWithGoogle, 
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                    // Google Button with its own loading indicator
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        InkWell(
+                          onTap: (_isLoading || _isGoogleLoading) ? null : _signInWithGoogle,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: _isGoogleLoading
+                                ? const SizedBox(
+                                    width: 30,
+                                    height: 30,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.blue,
+                                    ),
+                                  )
+                                : Image.network(
+                                    'https://www.google.com/favicon.ico',
+                                    width: 30,
+                                    height: 30,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(
+                                        Icons.g_mobiledata,
+                                        size: 30,
+                                        color: Colors.blue,
+                                      );
+                                    },
+                                  ),
+                          ),
                         ),
-                        child: Image.network(
-                          'https://www.google.com/favicon.ico',
-                          width: 30,
-                          height: 30,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.g_mobiledata,
-                              size: 30,
-                              color: Colors.blue,
-                            );
-                          },
-                        ),
-                      ),
+                      ],
                     ),
                     const SizedBox(width: 16),
+                    
+                    // Facebook Button
                     InkWell(
-                      // onTap:
-                      //     _signInWithFacebook, 
+                      onTap: (_isLoading || _isGoogleLoading) ? null : () {},
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.all(12),
@@ -394,8 +447,10 @@ class _Loginpage2State extends State<Loginpage2> {
                       ),
                     ),
                     const SizedBox(width: 16),
+                    
+                    // Apple Button
                     InkWell(
-                      // onTap: _signInWithApple, 
+                      onTap: (_isLoading || _isGoogleLoading) ? null : () {},
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.all(12),
@@ -414,13 +469,13 @@ class _Loginpage2State extends State<Loginpage2> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                 Text(
-                    'Sign in with social media',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
+                Text(
+                  'Sign in with social media',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
                   ),
+                ),
               ],
             ),
           ),
