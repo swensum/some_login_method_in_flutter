@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:test/models/database.dart';
-import 'package:test/models/user.dart';
+import '../models/database.dart';
+import '../models/user.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -364,9 +364,9 @@ class _SignupState extends State<Signup> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +391,7 @@ class _SignupState extends State<Signup> {
                         
                         // Security Question Dropdown
                         DropdownButtonFormField<String>(
-                          value: _useCustomQuestion ? null : _selectedSecurityQuestion,
+                          initialValue: _useCustomQuestion ? null : _selectedSecurityQuestion,
                           hint: const Text('Select a security question'),
                           isExpanded: true,
                           decoration: const InputDecoration(

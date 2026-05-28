@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:test/models/database.dart';
+import '../models/database.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});
@@ -123,11 +123,17 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
     setState(() => _isLoading = true);
     
     try {
+      
       final success = await DatabaseHelper.instance.updatePassword(_userEmail, newPass);
       
       if (success) {
+        if (!mounted) return;
         _showMessage('Password reset successful!', Colors.green);
-        Future.delayed(const Duration(seconds: 2), () => Navigator.pop(context));
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          Navigator.pop(context);
+        });
       } else {
         throw Exception('Failed to update');
       }
@@ -207,7 +213,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(_securityQuestion, style: const TextStyle(color: Colors.white, fontSize: 16), textAlign: TextAlign.center),

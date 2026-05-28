@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:test/models/database.dart';
-import 'package:test/profile.dart';
-import 'package:test/reset.dart';
-import 'package:test/signup.dart';
+import '../models/database.dart';
+import 'profile.dart';
+import 'reset.dart';
+import 'signup.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
@@ -139,6 +139,7 @@ void initState(){
         
         // For now, just show success and pop
         await Future.delayed(const Duration(milliseconds: 800));
+        if (!mounted) return; 
         Navigator.pop(context, true);
       }
 
