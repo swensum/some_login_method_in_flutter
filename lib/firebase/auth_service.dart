@@ -1,4 +1,10 @@
 
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -14,8 +20,18 @@ class AuthService {
   // Get current user
   User? get currentUser => _auth.currentUser;
 
-  // Sign in with email and password
-  // Sign in with email and password
+  String generateNonce() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64Url.encode(bytes);
+  }
+
+  // Generate SHA256 hash of nonce
+  String sha256Hash(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
 Future<User?> signInWithEmailPassword(String email, String password) async {
   try {
     UserCredential userCredential = await _auth.signInWithEmailAndPassword(
@@ -205,4 +221,75 @@ Future<User?> signInWithGoogle(BuildContext context) async {
     }
   }
 
+
+//---------------------apple sign in---------------------//
+
+Future<User?> signInWithApple(BuildContext context) async {
+  try{
+    print('Starting Apple Sign-in...');
+    final rawNonce = generateNonce();
+    final hashedNonce = sha256Hash(rawNonce);
+
+    final appleCredential = await SignInWithApple.getAppleIDCredential(
+   scopes: [
+      AppleIDAuthorizationScopes.email,
+      AppleIDAuthorizationScopes.fullName,
+    ],
+    nonce: hashedNonce,
+    );
+    print('Apple credentials received');
+    final idToken = appleCredential.identityToken;
+    if (idToken == null) {
+      throw Exception('No identity token received from Apple');
+    }
+
+    final credential  = OAuthProvider('apple.com').credential(
+      idToken: idToken,
+      rawNonce: rawNonce,
+    );
+    final UserCredential userCredential = await _auth.signInWithCredential(credential);
+    final User? user = userCredential.user;
+
+    if (user != null) {
+      print("✅ Apple sign-in success: ${user.email}");
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Apple Sign In Successful!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      return user;
+    } else {
+      throw Exception('Firebase sign-in failed');
+    }
+  } catch (e) {
+    if (context.mounted) {
+      String errorMessage = 'Apple Sign-in failed';
+
+      if (e is PlatformException) {
+        if (e.code == 'ERROR_CANCELED') {
+          errorMessage = 'Apple Sign-in was cancelled';
+        } else {
+          errorMessage = 'Apple Sign-in error: ${e.message ?? e.code}';
+        }
+      } else {
+        errorMessage = 'Apple Sign-in failed: ${e.toString().replaceAll('Exception: ', '')}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+
+    return null;
+  }
+}
 }

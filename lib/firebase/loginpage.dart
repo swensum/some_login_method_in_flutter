@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,6 +77,26 @@ class _Loginpage2State extends State<Loginpage2> {
       if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
+
+  Future<void> _signInWithApple() async {
+  if (_isLoading) return;
+  
+  setState(() => _isLoading = true);
+  
+  try {
+    User? user = await _authService.signInWithApple(context);
+    
+    if (user != null && mounted) {
+      // Apple users are automatically verified
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
@@ -446,11 +468,10 @@ class _Loginpage2State extends State<Loginpage2> {
                         ),
                       ),
                     ),
+                    if (Platform.isIOS) ...[
                     const SizedBox(width: 16),
-                    
-                    // Apple Button
                     InkWell(
-                      onTap: (_isLoading || _isGoogleLoading) ? null : () {},
+                      onTap: (_isLoading || _isGoogleLoading) ? null : _signInWithApple,
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.all(12),
@@ -467,6 +488,8 @@ class _Loginpage2State extends State<Loginpage2> {
                       ),
                     ),
                   ],
+                
+              ],
                 ),
                 const SizedBox(height: 16),
                 Text(
