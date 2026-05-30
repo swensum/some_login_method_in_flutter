@@ -146,3 +146,43 @@ screenshots/app_demo.gif
 No setup required ✅
 
 ---
+🧠 Key Concepts
+Modular architecture
+Separation of concerns
+Offline vs online authentication
+Social login integration
+Scalable Flutter structure
+⚠️ Notes
+Social login works only with Firebase
+SQLite is fully offline
+Each module has separate UI & logic
+main.dart = navigation only
+📌 Future Improvements
+🔐 Biometric Authentication
+📦 State Management (Bloc / Riverpod)
+🎨 UI Enhancements
+🌍 Backend API Integration
+🔒 Password Hashing (SQLite)
+🤝 Contributing
+
+Pull requests are welcome!
+
+Fork
+Create branch
+Commit
+Open PR
+📄 License
+
+MIT License
+
+⭐ Support
+
+If you like this project:
+
+👉 Give it a ⭐ on GitHub
+👉 Share with others
+
+👨‍💻 Author
+
+Your Name
+https://github.com/your-username 
